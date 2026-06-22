@@ -1131,10 +1131,16 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
 
     while (1) {
         // Wait until there are bytes to consume
-        ptWait(serialRxBytesWaiting(gpsState.gpsPort));
+        if (gpsState.gpsPort) {
+            ptWait(serialRxBytesWaiting(gpsState.gpsPort));
+        } else {
+            // No port available (e.g., when switching from driver-based provider)
+            ptWait(1);
+            continue;
+        }
 
         // Consume bytes until buffer empty of until we have full message received
-        while (serialRxBytesWaiting(gpsState.gpsPort)) {
+        while (gpsState.gpsPort && serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameUBLOX(newChar)) {
                 gpsProcessNewDriverData();
